@@ -5,8 +5,6 @@
 // When LDR triggered, it gives the user 5 seconds to input the Password to disarm the alarm. After 5 seconds, the alarm rings.
 // The user is still able to disarm the alarm with the Password while the alarm is ringing.
 
-//test
-
 #include <Wire.h>
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
