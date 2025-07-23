@@ -105,16 +105,37 @@ void loop()
       }
     }
   }
-  if (Alert)
+  if (Alert || AlarmArmed)
   {
     if (digitalRead(BUTTONK1) == 0)
+    {
+      EnterPass(1);
+    }
+    if (digitalRead(BUTTONK2) == 0)
+    {
+      EnterPass(2);
+    }
+    if (Pass >= PASSWORDLENGTH)
+    {
+    Pass = 0;
+      for (int i = 0; i < PASSWORDLENGTH; i++)
       {
-        EnterPass(1);
+        if (Password[i] != Key[i])
+        {
+          Serial.println("WRONGPASS");
+          Blink(LED_YELLOW, 100);
+          return;
+        }
+        if (i == PASSWORDLENGTH - 1)
+        {
+          Alert = 0;
+          AlarmArmed = 0;
+          disp.clearDisplay();
+          Blink(LED_GREEN, 1000);
+        }
       }
-      if (digitalRead(BUTTONK2) == 0)
-      {
-        EnterPass(2);
-      }
+      Serial.println("Alarm Reset!");
+    }
   }
 }
 
@@ -158,24 +179,6 @@ void AlarmLoop(void)
   {
     Serial.println("Beep!");
     beep();
-    if (Pass >= PASSWORDLENGTH)
-    {
-    Pass = 0;
-      for (int i = 0; i < PASSWORDLENGTH; i++)
-      {
-        if (Password[i] != Key[i])
-        {
-          Serial.println("WRONGPASS");
-          Blink(LED_YELLOW, 100);
-          return;
-        }
-        if (i == PASSWORDLENGTH - 1)
-        {
-          Alert = 0;
-          Blink(LED_GREEN, 1000);
-        }
-      }
-      Serial.println("Alarm Reset!");
-    }
+    
   }
 }
