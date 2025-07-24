@@ -8,6 +8,7 @@
 #include <Wire.h>
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
+#include "PCA9685.h" // library for the servo motor
 
 #define PassiveBuzzerPin 3
 PassiveBuzzer buz(PassiveBuzzerPin);
