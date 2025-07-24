@@ -8,6 +8,7 @@
 #include <Wire.h>
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
+#include "PCA9685.h" // Use for servo motor
 
 #define PassiveBuzzerPin 3
 PassiveBuzzer buz(PassiveBuzzerPin);
@@ -23,6 +24,8 @@ PassiveBuzzer buz(PassiveBuzzerPin);
 #define DIO 11
 TM1637 disp(CLK,DIO);
 #define PASSWORDLENGTH 5 // Set password length, must be same as the length of array, Key.
+PCA9685 pwmController(Wire);
+PCA9685_ServoEval pwmServo1;
 
 int LdrValue = 0;
 int PotValue = 0;
@@ -49,6 +52,12 @@ void setup() {
   pinMode(BUTTONK1, INPUT_PULLUP);
   pinMode(BUTTONK2, INPUT_PULLUP);
   disp.init();
+  pwmController.resetDevices();
+  pwmController.init();
+  pwmController.setPWMFreqServo();
+  pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(-10));
+  pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(0));
+delay(1000);
 }
 
 unsigned long previousMillisAlarm = 0;
@@ -134,6 +143,26 @@ void loop()
         }
       }
       Serial.println("Alarm Reset!");
+    }
+  }
+  
+  if (Alert) {
+    //code here 
+    for (int i = 0; i <=90; i += 5;) {
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i)); 
+        delay(200);
+    }
+    for (int i = 90; i>=90; i-=5;){
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
+        delay(100);
+    }
+    for (int i = 0; i >= -90; i-=5;){
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
+      delay(200);
+    }
+    for (int i = -90; i <= 0; i+=5;){
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
+      delay(100);
     }
   }
 }
