@@ -164,6 +164,14 @@ void loop()
         pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
       delay(100);
     }
+    for (i = -10; i <= 90; i += 5){
+      pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(i));
+      delay(250);
+    }
+    for (i = 90; i >= -10; i -= 5){
+      pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(i));//upper servo
+      delay(100);
+    }
   }
 }
 
