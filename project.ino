@@ -8,7 +8,9 @@
 #include <Wire.h>
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
+#include "RichShieldIRremote.h" // IR remote
 
+#define RECV_PIN 2
 #define PassiveBuzzerPin 3
 PassiveBuzzer buz(PassiveBuzzerPin);
 #define LED_RED 4
@@ -21,7 +23,9 @@ PassiveBuzzer buz(PassiveBuzzerPin);
 #define LDR_PIN A2
 #define CLK 10
 #define DIO 11
+#define KEY_POWER 0x45
 TM1637 disp(CLK,DIO);
+IRrecv IR(RECV_PIN);
 #define PASSWORDLENGTH 5 // Set password length, must be same as the length of array, Key.
 
 int LdrValue = 0;
@@ -48,6 +52,7 @@ void setup() {
   //pinMode(BUZZER,OUTPUT);
   pinMode(BUTTONK1, INPUT_PULLUP);
   pinMode(BUTTONK2, INPUT_PULLUP);
+	IR.enableIRIn();
   disp.init();
 }
 
@@ -136,6 +141,20 @@ void loop()
       Serial.println("Alarm Reset!");
     }
   }
+if (IR.decode()) {
+	if (IR.isReleased()) {
+		if (IR.keycode == KEY_POWER) {
+			if (Alert) {
+				Alert = 0;
+				Blink(LED_BLUE, 100);
+			}
+			else {
+				Alert = 1;
+				Blink(LED_BLUE, 100);
+			}
+		}
+	}
+}
 }
 
 void beep(void)
