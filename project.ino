@@ -9,6 +9,7 @@
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
 #include "RichShieldIRremote.h" // IR remote
+#include "PCA9685.h" // survo
 
 #define RECV_PIN 2
 IRrecv IR(RECV_PIN);
@@ -32,7 +33,11 @@ TM1637 disp(CLK,DIO);
 #define MINUSKEY 0x19
 #define LEFTKEY 0x07
 #define RIGHTKEY 0x09
+#define PLAYKEY 0x15
 
+PCA9685 pwmController(Wire);
+PCA9685_ServoEval pwmServo1;
+PCA9685_ServoEval pwmServo2(128,324,526);
 
 int LdrValue = 0;
 int PotValue = 0;
@@ -42,6 +47,8 @@ int Password[PASSWORDLENGTH];
 int Key[PASSWORDLENGTH] = {1,2,1,2,1}; // 1 is Blue, 2 is Yellow
 int AlarmArmed = 0;
 int time = 0;
+int xaxis = 0;
+int yaxis = -10;
 
 void EnterPass(int Button);
 void beep(void);
@@ -59,6 +66,12 @@ void setup() {
   pinMode(BUTTONK2, INPUT_PULLUP);
   disp.init();
   IR.enableIRIn();
+  Wire.begin();
+  pwmController.resetDevices();
+  pwmController.init();
+  pwmController.setPWMFreqServo();
+  pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(-10));
+  pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(0));
 }
 
 unsigned long previousMillisAlarm = 0;
@@ -85,9 +98,9 @@ void loop()
   if (currentMillis - previousMillisAlarm >= AlarmInt) {
     previousMillisAlarm = currentMillis;
     AlarmLoop();
-    Serial.println(LdrValue);
-    Serial.println(952 - (PotValue/1023.0 * 952));
-    Serial.println(Alert);
+    //Serial.println(LdrValue);
+    //Serial.println(952 - (PotValue/1023.0 * 952));
+    //Serial.println(Alert);
   }
   if (currentMillis - previousMillisGrace >= GraceInt) {
     if (Alert == 0) {
@@ -148,19 +161,38 @@ void loop()
         IR.resume();
       }
       if (IR.keycode == PLUSKEY) {
-        buz.playTone(200, 100);
+        if (yaxis < 90) {
+          yaxis += 10;
+        }
+        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
         IR.resume();
       }
       if (IR.keycode == MINUSKEY) {
-        buz.playTone(200, 100);
+        if (yaxis > -10) {
+          yaxis -= 10;
+        }
+        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
         IR.resume();
       }
       if (IR.keycode == LEFTKEY) {
-        buz.playTone(200, 100);
+        if (xaxis > -90) {
+          xaxis -= 10;
+        }
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
         IR.resume();
       }
       if (IR.keycode == RIGHTKEY) {
-        buz.playTone(200, 100);
+        if (xaxis < 90) {
+          xaxis += 10;
+        }
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
+        IR.resume();
+      }
+      if (IR.keycode == PLAYKEY) {
+        xaxis = 0;
+        yaxis = -10;
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
+        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
         IR.resume();
       }
       IR.resume();
