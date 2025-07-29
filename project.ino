@@ -8,8 +8,11 @@
 #include <Wire.h>
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
-#include "PCA9685.h" // Use for servo motor
+#include "RichShieldIRremote.h" // IR remote
+#include "PCA9685.h" // survo
 
+#define RECV_PIN 2
+IRrecv IR(RECV_PIN);
 #define PassiveBuzzerPin 3
 PassiveBuzzer buz(PassiveBuzzerPin);
 #define LED_RED 4
@@ -24,8 +27,16 @@ PassiveBuzzer buz(PassiveBuzzerPin);
 #define DIO 11
 TM1637 disp(CLK,DIO);
 #define PASSWORDLENGTH 5 // Set password length, must be same as the length of array, Key.
+
+#define POWERKEY 0x45
+#define PLUSKEY 0x40
+#define MINUSKEY 0x19
+#define LEFTKEY 0x07
+#define RIGHTKEY 0x09
+
 PCA9685 pwmController(Wire);
 PCA9685_ServoEval pwmServo1;
+PCA9685_ServoEval pwmServo2(128,324,526);
 
 int LdrValue = 0;
 int PotValue = 0;
@@ -33,9 +44,10 @@ int Alert = 0;
 int Pass = 0;
 int Password[PASSWORDLENGTH];
 int Key[PASSWORDLENGTH] = {1,2,1,2,1}; // 1 is Blue, 2 is Yellow
-int AlarmDelay = 0;
 int AlarmArmed = 0;
 int time = 0;
+int xaxis = 0;
+int yaxis = -10;
 
 void EnterPass(int Button);
 void beep(void);
@@ -52,19 +64,20 @@ void setup() {
   pinMode(BUTTONK1, INPUT_PULLUP);
   pinMode(BUTTONK2, INPUT_PULLUP);
   disp.init();
+  IR.enableIRIn();
+  Wire.begin();
   pwmController.resetDevices();
   pwmController.init();
   pwmController.setPWMFreqServo();
   pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(-10));
   pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(0));
-delay(1000);
 }
 
 unsigned long previousMillisAlarm = 0;
 unsigned long previousMillisGrace = 0;
 unsigned long previousMillisCount = 0;
 const unsigned long AlarmInt = 300;
-const unsigned long GraceInt = 5001;
+const unsigned long GraceInt = 7001;
 const unsigned long CountInt = 1;
 
 void loop()
@@ -74,42 +87,36 @@ void loop()
   PotValue = analogRead(POTENT_PIN);
   if (LdrValue <= (952 - (PotValue/1023.0 * 952)))
   {
-    if (Alert == 0 || AlarmDelay == 0 || AlarmArmed == 0) {
-      AlarmDelay = 1;
+    if (Alert == 0 && AlarmArmed == 0) {
+    previousMillisGrace = currentMillis;
+    time = 500;
+    Blink(LED_BLUE, 100);
+    AlarmArmed = 1;
     }
   }
   if (currentMillis - previousMillisAlarm >= AlarmInt) {
     previousMillisAlarm = currentMillis;
     AlarmLoop();
-    Serial.println(LdrValue);
+    //Serial.println(LdrValue);
+    //Serial.println(952 - (PotValue/1023.0 * 952));
+    //Serial.println(Alert);
   }
   if (currentMillis - previousMillisGrace >= GraceInt) {
-    if (AlarmDelay) {
-      previousMillisGrace = currentMillis;
-      if (AlarmArmed)
-      {
+    if (Alert == 0) {
+      if (AlarmArmed) {
         disp.clearDisplay();
-        AlarmDelay = 0;
         AlarmArmed = 0;
         Alert = 1;
       }
-      else
-      {
-        time = 500;
-        Blink(LED_BLUE, 100);
-        AlarmArmed = 1;
-      }
     }
   }
+    
   if (currentMillis - previousMillisCount >= CountInt) {
-    if (AlarmDelay) {
+    if (AlarmArmed) {
       previousMillisCount = currentMillis;
-      if (AlarmArmed)
-      {
-        if (time > -1) {
-          time -= 1;
-          disp.display(time / 100.0);
-        }
+      if (time > -1) {
+        time -= 1;
+        disp.display(time / 100.0);
       }
     }
   }
@@ -145,33 +152,44 @@ void loop()
       Serial.println("Alarm Reset!");
     }
   }
-  
-  if (Alert) {
-    //code here 
-    for (int i = 0; i <=90; i += 5) {
-        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i)); 
-        delay(200);
+  if (IR.decode()) {
+    if (IR.isReleased()) {
+      if (IR.keycode == POWERKEY) {
+        buz.playTone(200, 100);
+        Alert = !Alert;
+        IR.resume();
+      }
+      if (IR.keycode == PLUSKEY) {
+        if (yaxis < 90) {
+          yaxis += 10;
+        }
+        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
+        IR.resume();
+      }
+      if (IR.keycode == MINUSKEY) {
+        if (yaxis > -10) {
+          yaxis -= 10;
+        }
+        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
+        IR.resume();
+      }
+      if (IR.keycode == LEFTKEY) {
+        if (xaxis > -90) {
+          xaxis -= 10;
+        }
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
+        IR.resume();
+      }
+      if (IR.keycode == RIGHTKEY) {
+        if (xaxis < 90) {
+          xaxis += 10;
+        }
+        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
+        IR.resume();
+      }
+      IR.resume();
     }
-    for (int i = 90; i>=90; i-=5){
-        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
-        delay(100);
-    }
-    for (int i = 0; i >= -90; i-=5){
-        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
-      delay(200);
-    }
-    for (int i = -90; i <= 0; i+=5){
-        pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(i));
-      delay(100);
-    }
-    for (int i = -10; i <= 90; i += 5){
-      pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(i));
-      delay(250);
-    }
-    for (int i = 90; i >= -10; i -= 5){
-      pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(i));//upper servo
-      delay(100);
-    }
+    IR.resume();
   }
 }
 
@@ -207,14 +225,9 @@ void EnterPass(int Button)
 
 void AlarmLoop(void)
 {
-  if (AlarmDelay)
-  {
-    return;
-  }
   if (Alert)
   {
     Serial.println("Beep!");
     beep();
-    
   }
 }
