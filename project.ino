@@ -73,25 +73,29 @@ void loop()
     previousMillisAlarm = currentMillis;
     AlarmLoop();
     Serial.println(LdrValue);
+    Serial.println(952 - (PotValue/1023.0 * 952));
   }
   if (currentMillis - previousMillisGrace >= GraceInt) {
-    if (AlarmDelay) {
-      previousMillisGrace = currentMillis;
-      if (AlarmArmed)
-      {
-        disp.clearDisplay();
-        AlarmDelay = 0;
-        AlarmArmed = 0;
-        Alert = 1;
+    if (Alert == 0) {
+      if (AlarmDelay) {
+        previousMillisGrace = currentMillis;
+        if (AlarmArmed)
+        {
+         disp.clearDisplay();
+          AlarmDelay = 0;
+          AlarmArmed = 0;
+          Alert = 1;
+        }
+        else
+        {
+          time = 500;
+          Blink(LED_BLUE, 100);
+          AlarmArmed = 1;
+        }
       }
-      else
-      {
-        time = 500;
-        Blink(LED_BLUE, 100);
-        AlarmArmed = 1;
-      }
-    }
   }
+  }
+    
   if (currentMillis - previousMillisCount >= CountInt) {
     if (AlarmDelay) {
       previousMillisCount = currentMillis;
@@ -178,6 +182,5 @@ void AlarmLoop(void)
   {
     Serial.println("Beep!");
     beep();
-    
   }
 }
