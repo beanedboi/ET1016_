@@ -8,7 +8,10 @@
 #include <Wire.h>
 #include "RichShieldTM1637.h" // somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // use their BUZZER function
+#include "RichShieldIRremote.h" // IR remote
 
+#define RECV_PIN 2
+IRrecv IR(RECV_PIN);
 #define PassiveBuzzerPin 3
 PassiveBuzzer buz(PassiveBuzzerPin);
 #define LED_RED 4
@@ -24,13 +27,19 @@ PassiveBuzzer buz(PassiveBuzzerPin);
 TM1637 disp(CLK,DIO);
 #define PASSWORDLENGTH 5 // Set password length, must be same as the length of array, Key.
 
+#define POWERKEY 0x45
+#define PLUSKEY 0x40
+#define MINUSKEY 0x19
+#define LEFTKEY 0x07
+#define RIGHTKEY 0x09
+
+
 int LdrValue = 0;
 int PotValue = 0;
 int Alert = 0;
 int Pass = 0;
 int Password[PASSWORDLENGTH];
 int Key[PASSWORDLENGTH] = {1,2,1,2,1}; // 1 is Blue, 2 is Yellow
-int AlarmDelay = 0;
 int AlarmArmed = 0;
 int time = 0;
 
@@ -49,13 +58,14 @@ void setup() {
   pinMode(BUTTONK1, INPUT_PULLUP);
   pinMode(BUTTONK2, INPUT_PULLUP);
   disp.init();
+  IR.enableIRIn();
 }
 
 unsigned long previousMillisAlarm = 0;
 unsigned long previousMillisGrace = 0;
 unsigned long previousMillisCount = 0;
 const unsigned long AlarmInt = 300;
-const unsigned long GraceInt = 5001;
+const unsigned long GraceInt = 7001;
 const unsigned long CountInt = 1;
 
 void loop()
@@ -65,8 +75,11 @@ void loop()
   PotValue = analogRead(POTENT_PIN);
   if (LdrValue <= (952 - (PotValue/1023.0 * 952)))
   {
-    if (Alert == 0 || AlarmDelay == 0 || AlarmArmed == 0) {
-      AlarmDelay = 1;
+    if (Alert == 0 && AlarmArmed == 0) {
+    previousMillisGrace = currentMillis;
+    time = 500;
+    Blink(LED_BLUE, 100);
+    AlarmArmed = 1;
     }
   }
   if (currentMillis - previousMillisAlarm >= AlarmInt) {
@@ -74,37 +87,24 @@ void loop()
     AlarmLoop();
     Serial.println(LdrValue);
     Serial.println(952 - (PotValue/1023.0 * 952));
+    Serial.println(Alert);
   }
   if (currentMillis - previousMillisGrace >= GraceInt) {
     if (Alert == 0) {
-      if (AlarmDelay) {
-        previousMillisGrace = currentMillis;
-        if (AlarmArmed)
-        {
-         disp.clearDisplay();
-          AlarmDelay = 0;
-          AlarmArmed = 0;
-          Alert = 1;
-        }
-        else
-        {
-          time = 500;
-          Blink(LED_BLUE, 100);
-          AlarmArmed = 1;
-        }
+      if (AlarmArmed) {
+        disp.clearDisplay();
+        AlarmArmed = 0;
+        Alert = 1;
       }
-  }
+    }
   }
     
   if (currentMillis - previousMillisCount >= CountInt) {
-    if (AlarmDelay) {
+    if (AlarmArmed) {
       previousMillisCount = currentMillis;
-      if (AlarmArmed)
-      {
-        if (time > -1) {
-          time -= 1;
-          disp.display(time / 100.0);
-        }
+      if (time > -1) {
+        time -= 1;
+        disp.display(time / 100.0);
       }
     }
   }
@@ -140,6 +140,33 @@ void loop()
       Serial.println("Alarm Reset!");
     }
   }
+  if (IR.decode()) {
+    if (IR.isReleased()) {
+      if (IR.keycode == POWERKEY) {
+        buz.playTone(200, 100);
+        Alert = !Alert;
+        IR.resume();
+      }
+      if (IR.keycode == PLUSKEY) {
+        buz.playTone(200, 100);
+        IR.resume();
+      }
+      if (IR.keycode == MINUSKEY) {
+        buz.playTone(200, 100);
+        IR.resume();
+      }
+      if (IR.keycode == LEFTKEY) {
+        buz.playTone(200, 100);
+        IR.resume();
+      }
+      if (IR.keycode == RIGHTKEY) {
+        buz.playTone(200, 100);
+        IR.resume();
+      }
+      IR.resume();
+    }
+    IR.resume();
+  }
 }
 
 void beep(void)
@@ -174,10 +201,6 @@ void EnterPass(int Button)
 
 void AlarmLoop(void)
 {
-  if (AlarmDelay)
-  {
-    return;
-  }
   if (Alert)
   {
     Serial.println("Beep!");
