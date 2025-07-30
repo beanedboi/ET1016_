@@ -17,7 +17,7 @@ int Key[PASSWORDLENGTH] = {1,2,1,2,1}; // 1 is Blue, 2 is Yellow.
 #include "RichShieldTM1637.h" // Segment Display, somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // Buzzer, replace with Rich's BUZZER function
 #include "RichShieldIRremote.h" // IR Remote
-#include "PCA9685.h" // Servo motor
+#include "PCA9685.h" // Survo
 
 // Constant Variables
 
@@ -42,6 +42,8 @@ int Key[PASSWORDLENGTH] = {1,2,1,2,1}; // 1 is Blue, 2 is Yellow.
 #define LEFTKEY 0x07
 #define RIGHTKEY 0x09
 #define PLAYKEY 0x15
+#define MENUKEY 0x47
+#define TESTKEY 0x44
 
 // Libraries Setup
 TM1637 disp(CLK,DIO);
@@ -60,6 +62,8 @@ int AlarmArmed = 0;
 int time = 0;
 int xaxis = 0;
 int yaxis = -10;
+int Disarmed = 0;
+int Mode = 0;
 
 // Prototype Functions
 void EnterPass(int Button);
@@ -92,10 +96,12 @@ void setup() {
 unsigned long previousMillisAlarm = 0;
 unsigned long previousMillisGrace = 0;
 unsigned long previousMillisCount = 0;
+unsigned long previousMillisDisplay = 0;
 // Timer Delay, where 1 is 1ms
 const unsigned long AlarmInt = 300;
 const unsigned long GraceInt = 7001;
 const unsigned long CountInt = 1;
+const unsigned long DisplayInt = 1;
 
 void loop()
 {
@@ -107,9 +113,9 @@ void loop()
   PotValue = analogRead(POTENT_PIN);
 
   // Check LDR
-  if (LdrValue <= (952 - (PotValue/1023.0 * 952)))
+  if (LdrValue <= PotValue)
   {
-    if (Alert == 0 && AlarmArmed == 0) {
+    if (Alert == 0 && AlarmArmed == 0 && Disarmed == 0) {
     previousMillisGrace = currentMillis;
     time = 500;
     Blink(LED_BLUE, 100);
@@ -121,7 +127,7 @@ void loop()
     previousMillisAlarm = currentMillis;
     AlarmLoop();
     Serial.println(LdrValue);
-    Serial.println(952 - (PotValue/1023.0 * 952));
+    Serial.println(PotValue);
   }
   // Timer 2
   if (currentMillis - previousMillisGrace >= GraceInt) {
@@ -143,6 +149,17 @@ void loop()
       }
     }
   }
+  if (currentMillis - previousMillisDisplay >= DisplayInt) {
+    if (Mode && Disarmed) {
+      previousMillisDisplay = currentMillis;
+        if (Mode == 1) {
+          disp.display(LdrValue);
+        }
+        else {
+          disp.display(PotValue);
+        }
+      }
+    }
   // Password Checking
   if (Alert || AlarmArmed)
   {
@@ -180,47 +197,63 @@ void loop()
   // IR Implimentation
   if (IR.decode()) {
     if (IR.isReleased()) {
-      if (IR.keycode == POWERKEY) {
-        buz.playTone(200, 100);
-        Alert = !Alert; // Toggles Alarm
+      switch (IR.keycode) {
+        case MENUKEY : buz.playTone(200, 100); // Disarm Mode Toggle
+        Disarmed = !Disarmed; // Toggles Disarmed Flag
+        Mode = 0; // Reset Mode
+        disp.clearDisplay();
+        Alert = 0; // Stops alarm
         IR.resume();
-      }
-
-      // Camera Movement
-      if (IR.keycode == PLUSKEY) {
-        if (yaxis < 90) {
-          yaxis += 10;
+        break;
+        case POWERKEY : buz.playTone(200, 100); // Toggles Alarm
+        Alert = !Alert;
+        IR.resume();
+        break;
+        case TESTKEY : buz.playTone(200, 100); // Toggle Config ONLY WHEN DISARMED
+        // Toggle between 3 Modes
+        if (Disarmed) {
+          if (Mode < 2) {
+            Mode++;
+          }
+          else {
+            Mode = 0;
+            disp.clearDisplay();
+          }
         }
-        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
         IR.resume();
-      }
-      if (IR.keycode == MINUSKEY) {
-        if (yaxis > -10) {
+        break;
+
+        // Camera controls
+        case PLUSKEY : if (yaxis > -10) {
           yaxis -= 10;
         }
         pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
         IR.resume();
-      }
-      if (IR.keycode == LEFTKEY) {
-        if (xaxis > -90) {
+        break;
+        case MINUSKEY : if (yaxis < 90) {
+          yaxis += 10;
+        }
+        pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
+        IR.resume();
+        break;
+        case LEFTKEY : if (xaxis > -90) {
           xaxis -= 10;
         }
         pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
         IR.resume();
-      }
-      if (IR.keycode == RIGHTKEY) {
-        if (xaxis < 90) {
+        break;
+        case RIGHTKEY : if (xaxis < 90) {
           xaxis += 10;
         }
         pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
         IR.resume();
-      }
-      if (IR.keycode == PLAYKEY) {
-        xaxis = 0;
+        break;
+        case PLAYKEY : xaxis = 0; // Reset CamPos
         yaxis = -10;
         pwmController.setChannelPWM(1, pwmServo1.pwmForAngle(xaxis));
         pwmController.setChannelPWM(0, pwmServo1.pwmForAngle(yaxis));
         IR.resume();
+        break;
       }
       IR.resume();
     }
@@ -233,7 +266,7 @@ void loop()
 void beep(void)
 {
   // Plays a noise
-  buz.playTone(20, 100); // Change by changing values in playTone(a, b) where a = Pitch and b = Duration
+  buz.playTone(20, 100); // Change values in playTone(a, b): a = Pitch and b = Duration
   Blink(LED_RED, 100);
   return;
 }
@@ -263,7 +296,7 @@ void EnterPass(int Button)
 void AlarmLoop(void)
 {
   // There was more stuff here but got moved/removed. Function could be used for future additions/debugging.
-  if (Alert)
+  if (Alert && Disarmed == 0)
   {
     Serial.println("Beep!");
     beep();
