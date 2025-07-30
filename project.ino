@@ -234,7 +234,7 @@ void beep(void)
 {
   // Plays a noise
   buz.playTone(20, 100); // Change by changing values in playTone(a, b) where a = Pitch and b = Duration
-  Blink(LED_RED, 100)
+  Blink(LED_RED, 100);
   return;
 }
 
