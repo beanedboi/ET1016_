@@ -99,7 +99,7 @@ unsigned long previousMillisCount = 0;
 unsigned long previousMillisDisplay = 0;
 // Timer Delay, where 1 is 1ms
 const unsigned long AlarmInt = 300;
-const unsigned long GraceInt = 7001;
+const unsigned long GraceInt = 5010;
 const unsigned long CountInt = 1;
 const unsigned long DisplayInt = 1;
 
@@ -117,7 +117,7 @@ void loop()
   {
     if (Alert == 0 && AlarmArmed == 0 && Disarmed == 0) {
     previousMillisGrace = currentMillis;
-    time = 500;
+    time = 5000;
     Blink(LED_BLUE, 100);
     AlarmArmed = 1;
     }
@@ -143,9 +143,9 @@ void loop()
   if (currentMillis - previousMillisCount >= CountInt) {
     if (AlarmArmed) {
       previousMillisCount = currentMillis;
-      if (time > -1) {
-        time -= 1;
-        disp.display(time / 100.0);
+      if (time > -10) {
+        time -= 10;
+        disp.display(time / 1000.0);
       }
     }
   }
