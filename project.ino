@@ -199,6 +199,11 @@ void loop()
     if (IR.isReleased()) {
       switch (IR.keycode) {
         case MENUKEY : buz.playTone(200, 100); // Disarm Mode Toggle
+        if (Disarmed == 1){
+          Serial.println("Alarm is armed");
+        }
+        else {Serial.println("Alarm is disarmed");
+        }
         Disarmed = !Disarmed; // Toggles Disarmed Flag
         Mode = 0; // Reset Mode
         disp.clearDisplay();
