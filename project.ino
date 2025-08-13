@@ -9,15 +9,15 @@
 // The user can Arm/Disarm the alarm, move the camera and connect to the camera remotely.
 
 // Config
-#define PASSWORDLENGTH 5 // Set password length, must be same as the length of array, Key.
-int Key[PASSWORDLENGTH] = {1,2,1,2,1}; // 1 is Blue, 2 is Yellow.
+#define PASSWORDLENGTH 6 // Set password length, must be same as the length of array, Key.
+int Key[PASSWORDLENGTH] = {1,2,1,2,1,2}; // 1 is Blue, 2 is Yellow.
 
 // Libraries
 #include <Wire.h>
 #include "RichShieldTM1637.h" // Segment Display, somehow breaks Arduino's default BUZZER functions
 #include "RichShieldPassiveBuzzer.h" // Buzzer, replace with Rich's BUZZER function
 #include "RichShieldIRremote.h" // IR Remote
-#include "PCA9685.h" // Survo
+#include "PCA9685.h" // Servo
 
 // Constant Variables
 
