@@ -271,7 +271,7 @@ void loop()
 void beep(void)
 {
   // Plays a noise
-  buz.playTone(20, 100); // Change values in playTone(a, b): a = Pitch and b = Duration
+  buz.playTone(5000, 100); // Change values in playTone(a, b): a = Pitch and b = Duration
   Blink(LED_RED, 100);
   return;
 }
