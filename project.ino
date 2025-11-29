@@ -1,5 +1,5 @@
-// KUA KAI YI 2516000 DCEP/FT/1A/04
-// WONG JIA KANG 2524708 DCEP/FT/1A/04
+// KAI 25160XX /FT/1A/
+// JIA KANG 25247XX /FT/1A/
 
 // Description: The project is on Home Security System, detecting movement and changes based on change in LDR value.
 // When LDR triggered, it gives the user 5 seconds to input the Password to disarm the alarm. After 5 seconds, the alarm rings.
